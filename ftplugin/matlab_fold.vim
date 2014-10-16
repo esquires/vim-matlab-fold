@@ -53,6 +53,10 @@ function! GetLineIndent(lnum, ...)
     " proceeds in both directions for blank lines, taking the maximum in
     " either direction.
 
+    if a:lnum <= 0 || a:lnum > line("$")
+        return 0
+    end
+
     " check for optional second argument
     if a:0 > 0
         let directionForward = a:1
