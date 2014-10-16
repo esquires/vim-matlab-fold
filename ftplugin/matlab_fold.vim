@@ -1,6 +1,6 @@
 " Vim folding file for Matlab .m files
-" Language: Matlab  
-" Author: Dan O'Shea <dan at djoshea.com>   
+" Language: Matlab
+" Author: Dan O'Shea <dan at djoshea.com>
 " Last Change:  2012 Jan 15
 " Version:  1.0
 "
@@ -13,7 +13,7 @@
 "
 " The code looks for end keywords to know where to end folds. Line
 " continuations ... and comments are handled gracefully. Editor cells
-" (beginning with %%) are also foldable even though the contents need 
+" (beginning with %%) are also foldable even though the contents need
 " not be indented.
 "
 " This folding works best when the Matlab syntax and indent plugins authored
@@ -26,7 +26,7 @@
 "       ~/.vim/bundle/vim-matlab-fold/ftplugin/ if you're using Pathogen
 "
 "   - Make sure you have the following lines in your .vimrc
-"       filetype plugin on 
+"       filetype plugin on
 "       filetype indent on
 "
 
@@ -34,13 +34,13 @@ setlocal foldmethod=expr
 setlocal foldexpr=MatlabFoldExpr()
 
 setlocal foldtext=MatlabFoldText()
-setlocal fillchars=  " 
+setlocal fillchars=  "
 
 " set this to something low (like 0 - 2 range) to start with some folds closed
 setlocal foldlevel=20
 
 function! GetLineIndent(lnum, ...)
-    " Get the indent of line lnum. This function automatically takes ... line 
+    " Get the indent of line lnum. This function automatically takes ... line
     " continuation into account using recursion on the previous line (by
     " default, unless a second argument is provided). Blank lines are
     " considered indented by the maximum of their surrounding lines indents.
@@ -52,7 +52,7 @@ function! GetLineIndent(lnum, ...)
     " forward; if specified as -1 it preceeds backwards in the file, else it
     " proceeds in both directions for blank lines, taking the maximum in
     " either direction.
-    
+
     " check for optional second argument
     if a:0 > 0
         let directionForward = a:1
@@ -61,7 +61,7 @@ function! GetLineIndent(lnum, ...)
     end
 
     " useful for debugging. Use :mess to see these messages
-    " echom 'Finding indent for Line ' a:lnum ' with directionForward = ' directionForward 
+    " echom 'Finding indent for Line ' a:lnum ' with directionForward = ' directionForward
 
     " does the line begin with %%? Specifically mark as indent 1 to prevent it
     " from being treated as an ordinary blank line
@@ -75,21 +75,21 @@ function! GetLineIndent(lnum, ...)
         if directionForward == 0
             " For blank lines, return the indent of the most indented surrounding line
             " Use the second argument to force the recursion to proceed in a
-            " specific direction outward from this line 
-            return max([GetLineIndent(nextnonblank(a:lnum+1),1), GetLineIndent(prevnonblank(a:lnum-1),-1)]) 
+            " specific direction outward from this line
+            return max([GetLineIndent(nextnonblank(a:lnum+1),1), GetLineIndent(prevnonblank(a:lnum-1),-1)])
 
         elseif directionForward == 1
             " Just check the subsequent line
             return GetLineIndent(nextnonblank(a:lnum+1), 1)
-        else " directionForward == -1 
+        else " directionForward == -1
             " Just check the previous line
             return GetLineIndent(prevnonblank(a:lnum-1), -1)
         end
 
     else
-        " Nothing special, just return the actual indent + 1, which allows for 
+        " Nothing special, just return the actual indent + 1, which allows for
         " cell-mode folding of unindented lines
-        return indent(a:lnum) + 1 
+        return indent(a:lnum) + 1
 
         " if you're trying to debug, i'd recommend changing the above to:
         " return indent(a:lnum) / &ts + 1
@@ -106,7 +106,7 @@ endfunction
 function! IsLineCellStart(lnum)
     " Returns 1 iff this line begins with %% and starts a cell,
     " i.e. the previous line doesn't also start with %%
-    if IsLineCellMarked(a:lnum) 
+    if IsLineCellMarked(a:lnum)
         if IsLineCellMarked(a:lnum-1)
             return 0
         else
@@ -123,8 +123,8 @@ function! IsLineBlank(lnum)
 endfunction
 
 function! IsLineEndKeyword(lnum)
-    " Returns 1 iff this line contains the end keyword 
-    " (followed possibly by a semicolon or a comment). 
+    " Returns 1 iff this line contains the end keyword
+    " (followed possibly by a semicolon or a comment).
     " NOTE: Doesn't work if the line has a comma , separating multiple commands.
     return getline(a:lnum)=~'^\s*end\s*;\=\s*\(%.*\)*$'
 endfunction
@@ -142,14 +142,14 @@ function! MatlabFoldExpr(...)
     " It will return a string number indicating the fold level of the
     " line, possibly preceded by a > or < if this line begins or ends a fold
     " with that indentation level. See :help fold-expr for details.
-    
+
     " determine whether to use the first argument or v:lnum
-    " allowing us to call this function directly or use it as foldexpr 
+    " allowing us to call this function directly or use it as foldexpr
     if a:0 > 0
         let lnum = a:1
     else
         let lnum = v:lnum
-    endif   
+    endif
 
     if lnum == 1
         " first line is always a fold (as if it's the first cell)
@@ -162,35 +162,35 @@ function! MatlabFoldExpr(...)
         " %% cell starters start a fold
         let f = '>'.GetLineIndent(nextnonblank(lnum+1))
 
-    elseif IsLineEndKeyword(lnum) 
-        " this is an end keyword that terminates the fold 
+    elseif IsLineEndKeyword(lnum)
+        " this is an end keyword that terminates the fold
         " mark this as <# where # is the indent of the fold's content
         let f = '<'.GetLineIndent(prevnonblank(lnum-1))
 
-    elseif GetLineIndent(lnum) < GetLineIndent(nextnonblank(lnum+1)) 
+    elseif GetLineIndent(lnum) < GetLineIndent(nextnonblank(lnum+1))
         " next line has greater indent, thus this line starts a new fold
         " so mark this as ># where # is the indent of the fold's content
         let f = '>'.GetLineIndent(nextnonblank(lnum+1))
 
     else
         " this is normal inner content, intelligently calculate indent
-        let f = GetLineIndent(lnum) 
+        let f = GetLineIndent(lnum)
 
     endif
 
     " Uncomment for debugging, use :mess to view
-    "echom 'Line ' lnum ' : level = ' f 
+    "echom 'Line ' lnum ' : level = ' f
     return f
 endfunction
 
 " This function is a modified version of code from the following post. Thanks Greg!
 " http://www.gregsexton.org/2011/03/improving-the-text-displayed-in-a-fold/
 "
-" It returns a string which the folded text block will be collapsed into, and 
+" It returns a string which the folded text block will be collapsed into, and
 " features the first line of the block, the number of lines folded up, and the
 " percentage of the file which this fold comprises.
 function! MatlabFoldText()
-    
+
     " get first non-blank line
     let fs = v:foldstart
     while getline(fs) =~ '^\s*$' | let fs = nextnonblank(fs + 1)
