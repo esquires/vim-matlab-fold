@@ -93,7 +93,7 @@ function! GetLineIndent(lnum, ...)
     else
         " Nothing special, just return the actual indent + 1, which allows for
         " cell-mode folding of unindented lines
-        return indent(a:lnum) + 1
+        return indent(a:lnum)/&tabstop + 1
 
         " if you're trying to debug, i'd recommend changing the above to:
         " return indent(a:lnum) / &ts + 1
@@ -138,6 +138,22 @@ function! IsLineContinuedOnNext(lnum)
     return getline(a:lnum)=~'\.\{3}\s*\(%.*\)*$'
 endfunction
 
+function! IsLineComment(lnum)
+    if a:lnum >= 1 && a:lnum <= line("$")
+        return getline(a:lnum)=~'^%.*$'
+    else
+        return 0
+    endif
+endfunction
+
+function! IsFunctionDescription(lnum)
+
+    return   (IsLineComment(a:lnum-2) && IsLineComment(a:lnum-1) && IsLineComment(a:lnum))
+        \ || (IsLineComment(a:lnum-1) && IsLineComment(a:lnum)   && IsLineComment(a:lnum+1))
+        \ || (IsLineComment(a:lnum)   && IsLineComment(a:lnum+1) && IsLineComment(a:lnum+2))
+
+endfunction
+
 function! MatlabFoldExpr(...)
     " This function is called by vim to determine the folding structure of the
     " document, but you can also call it directly using:
@@ -161,6 +177,15 @@ function! MatlabFoldExpr(...)
         " need to scan the whole file looking for the first cell, marking lines
         " above this first cell as 0 and the lines below it as 1 or greater
         let f = '>'.GetLineIndent(nextnonblank(lnum+1))
+
+    elseif IsFunctionDescription(lnum)
+
+        if IsLineComment(lnum-1) == 0
+            let temp= GetLineIndent(lnum)+1
+            let f = '>'.temp
+        else
+            let f = GetLineIndent(lnum)+1
+        endif
 
     elseif IsLineCellStart(lnum)
         " %% cell starters start a fold
